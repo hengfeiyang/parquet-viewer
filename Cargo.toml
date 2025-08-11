@@ -1,0 +1,45 @@
+[package]
+description = "Parquet viwer is an tools that allows you to read parquet and arrow files."
+edition = "2021"
+homepage = "https://github.com/hengfeiyang/parquet-viewer/"
+keywords = [
+    "arrow",
+    "parquet",
+]
+license = "AGPL-3.0-only"
+name = "parquet-viewer"
+repository = "https://github.com/hengfeiyang/parquet-viewer/"
+version = "0.1.0"
+publish = false
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "parquet_viewer"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+ffi = []
+
+[dependencies]
+clap = { version = "4.1", default-features = false, features = [
+    "std",
+    "help",
+    "usage",
+    "suggestions",
+    "cargo",
+] }
+arrow = "56"
+arrow-schema = "56"
+parquet = "56"
+env_logger = "0.11"
+futures = "0.3"
+hashbrown = "0.15"
+itertools = "0.14"
+log = "0.4"
+thiserror = "1.0"
+time = "0.3"
+serde_json = "1.0"
+
+[dev-dependencies]
+tempfile = "3.8"
