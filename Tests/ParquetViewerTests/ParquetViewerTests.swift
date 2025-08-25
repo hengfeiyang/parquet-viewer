@@ -1,8 +1,8 @@
 import XCTest
 import Foundation
-@testable import ParquetViewerFFI
+@testable import ParquetViewer
 
-final class ParquetViewerFFITests: XCTestCase {
+final class ParquetViewerTests: XCTestCase {
     
     // MARK: - Test Data
     

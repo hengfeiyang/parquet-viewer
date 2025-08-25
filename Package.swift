@@ -11,16 +11,17 @@ let package = Package(
     products: [
         .library(
             name: "ParquetViewer",
-            targets: ["ParquetViewerFFI"]),
+            type: .dynamic,
+            targets: ["ParquetViewer"]),
     ],
     dependencies: [
         // No external dependencies required
     ],
     targets: [
         .target(
-            name: "ParquetViewerFFI",
+            name: "ParquetViewer",
             dependencies: [],
-            path: "Sources/ParquetViewerFFI",
+            path: "Sources/ParquetViewer",
             linkerSettings: [
                 .linkedLibrary("parquet_viewer"),
                 .linkedFramework("Foundation"),
@@ -29,8 +30,8 @@ let package = Package(
         ),
         .testTarget(
             name: "ParquetViewerTests",
-            dependencies: ["ParquetViewerFFI"],
-            path: "Tests/ParquetViewerFFITests"
+            dependencies: ["ParquetViewer"],
+            path: "Tests/ParquetViewerTests"
         ),
     ]
 )

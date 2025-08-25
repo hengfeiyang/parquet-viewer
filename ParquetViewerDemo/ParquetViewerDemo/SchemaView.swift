@@ -1,4 +1,5 @@
 import SwiftUI
+import ParquetViewer
 
 struct SchemaView: View {
     let schema: Schema?
@@ -77,13 +78,13 @@ struct SchemaView: View {
     }
 }
 
-#Preview {
-    SchemaView(schema: Schema(
-        fields: [
-            SchemaField(name: "id", type: "Int32"),
-            SchemaField(name: "name", type: "Utf8"),
-            SchemaField(name: "value", type: "Float64")
-        ],
-        numFields: 3
-    ))
-}
+//#Preview {
+//    SchemaView(schema: Schema(
+//        fields: [
+//            SchemaField(name: "id", type: "Int32"),
+//            SchemaField(name: "name", type: "Utf8"),
+//            SchemaField(name: "value", type: "Float64")
+//        ],
+//        numFields: 3
+//    ))
+//}

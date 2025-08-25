@@ -7,8 +7,23 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		9333EDCF2E5CC32F00A645B5 /* ParquetViewer in Frameworks */ = {isa = PBXBuildFile; productRef = 9333EDCE2E5CC32F00A645B5 /* ParquetViewer */; };
+		93130E242E5CD09400159F1C /* ParquetViewer in Frameworks */ = {isa = PBXBuildFile; productRef = 93130E232E5CD09400159F1C /* ParquetViewer */; };
+		93130E252E5CD0F500159F1C /* ParquetViewer in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 93130E232E5CD09400159F1C /* ParquetViewer */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		93130E262E5CD0F500159F1C /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				93130E252E5CD0F500159F1C /* ParquetViewer in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		933386A82E5CB9460066F901 /* ParquetViewerDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ParquetViewerDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -27,17 +42,25 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9333EDCF2E5CC32F00A645B5 /* ParquetViewer in Frameworks */,
+				93130E242E5CD09400159F1C /* ParquetViewer in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		93130E1F2E5CCFB600159F1C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		9333869F2E5CB9460066F901 = {
 			isa = PBXGroup;
 			children = (
 				933386AA2E5CB9460066F901 /* ParquetViewerDemo */,
+				93130E1F2E5CCFB600159F1C /* Frameworks */,
 				933386A92E5CB9460066F901 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -60,6 +83,7 @@
 				933386A42E5CB9460066F901 /* Sources */,
 				933386A52E5CB9460066F901 /* Frameworks */,
 				933386A62E5CB9460066F901 /* Resources */,
+				93130E262E5CD0F500159F1C /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -70,7 +94,7 @@
 			);
 			name = ParquetViewerDemo;
 			packageProductDependencies = (
-				9333EDCE2E5CC32F00A645B5 /* ParquetViewer */,
+				93130E232E5CD09400159F1C /* ParquetViewer */,
 			);
 			productName = ParquetViewerDemo;
 			productReference = 933386A82E5CB9460066F901 /* ParquetViewerDemo.app */;
@@ -101,7 +125,7 @@
 			mainGroup = 9333869F2E5CB9460066F901;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				9333EDCD2E5CC32F00A645B5 /* XCLocalSwiftPackageReference "../../parquet-viewer" */,
+				93130E222E5CD09400159F1C /* XCLocalSwiftPackageReference "../../parquet-viewer" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 933386A92E5CB9460066F901 /* Products */;
@@ -265,7 +289,17 @@
 				DEVELOPMENT_TEAM = VS7S7V6J2F;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -273,6 +307,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 13.5;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.parquetviewer.ParquetViewerDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -297,7 +332,17 @@
 				DEVELOPMENT_TEAM = VS7S7V6J2F;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -305,6 +350,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 13.5;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.parquetviewer.ParquetViewerDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -342,14 +388,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		9333EDCD2E5CC32F00A645B5 /* XCLocalSwiftPackageReference "../../parquet-viewer" */ = {
+		93130E222E5CD09400159F1C /* XCLocalSwiftPackageReference "../../parquet-viewer" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "../../parquet-viewer";
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		9333EDCE2E5CC32F00A645B5 /* ParquetViewer */ = {
+		93130E232E5CD09400159F1C /* ParquetViewer */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ParquetViewer;
 		};

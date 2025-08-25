@@ -1,4 +1,5 @@
 import SwiftUI
+import ParquetViewer
 
 struct MetadataView: View {
     let metadata: FileMetadata?
@@ -94,18 +95,18 @@ struct MetadataView: View {
     }
 }
 
-#Preview {
-    MetadataView(metadata: FileMetadata(
-        fileSize: 1024,
-        totalRecords: 1000,
-        totalFields: 5,
-        totalRowGroups: 1,
-        version: 1,
-        createdBy: "parquet-rs version 54.2.1",
-        keyValueMetadata: [
-            KeyValue(key: "min_ts", value: "1754315677492053"),
-            KeyValue(key: "max_ts", value: "1754315791230690"),
-            KeyValue(key: "records", value: "63")
-        ]
-    ))
-}
+//#Preview {
+//    MetadataView(metadata: FileMetadata(
+//        fileSize: 1024,
+//        totalRecords: 1000,
+//        totalFields: 5,
+//        totalRowGroups: 1,
+//        version: 1,
+//        createdBy: "parquet-rs version 54.2.1",
+//        keyValueMetadata: [
+//            KeyValue(key: "min_ts", value: "1754315677492053"),
+//            KeyValue(key: "max_ts", value: "1754315791230690"),
+//            KeyValue(key: "records", value: "63")
+//        ]
+//    ))
+//}

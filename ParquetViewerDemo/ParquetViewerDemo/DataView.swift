@@ -1,4 +1,5 @@
 import SwiftUI
+import ParquetViewer
 
 struct DataView: View {
     let recordBatches: [RecordBatch]
@@ -114,17 +115,17 @@ struct DataView: View {
     }
 }
 
-#Preview {
-    DataView(recordBatches: [
-        RecordBatch(
-            json: "{\"columns\":[{\"name\":\"id\",\"type\":\"Int32\"},{\"name\":\"name\",\"type\":\"Utf8\"}]}",
-            numRows: 100,
-            numColumns: 2
-        ),
-        RecordBatch(
-            json: "{\"columns\":[{\"name\":\"value\",\"type\":\"Float64\"}]}",
-            numRows: 50,
-            numColumns: 1
-        )
-    ])
-}
+//#Preview {
+//    DataView(recordBatches: [
+//        RecordBatch(
+//            json: "{\"columns\":[{\"name\":\"id\",\"type\":\"Int32\"},{\"name\":\"name\",\"type\":\"Utf8\"}]}",
+//            numRows: 100,
+//            numColumns: 2
+//        ),
+//        RecordBatch(
+//            json: "{\"columns\":[{\"name\":\"value\",\"type\":\"Float64\"}]}",
+//            numRows: 50,
+//            numColumns: 1
+//        )
+//    ])
+//}
