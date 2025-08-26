@@ -170,8 +170,8 @@ struct ContentView: View {
                 // Read metadata
                 let metadata = try ParquetViewer.readMetadata(filePath: filePath)
                 
-                // Read data
-                let batches = try ParquetViewer.readData(filePath: filePath)
+                // Read data (limit to 1000 rows for demo)
+                let batches = try ParquetViewer.readData(filePath: filePath, batchSize: 1000, limit: 1000)
                 
                 DispatchQueue.main.async {
                     self.schema = schema

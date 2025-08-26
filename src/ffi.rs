@@ -1,4 +1,4 @@
-use crate::{read_data, read_metadata, read_schema};
+use crate::{read_data, read_data_with_projection, read_metadata, read_schema};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::path::Path;
@@ -183,6 +183,7 @@ pub extern "C" fn parquet_viewer_read_metadata(file_path: *const c_char) -> *mut
 pub extern "C" fn parquet_viewer_read_data(
     file_path: *const c_char,
     batch_size: usize,
+    limit: usize,
 ) -> *mut CRecordBatchArray {
     if file_path.is_null() {
         return ptr::null_mut();
@@ -201,8 +202,91 @@ pub extern "C" fn parquet_viewer_read_data(
     } else {
         None
     };
+    let limit_opt = if limit > 0 {
+        Some(limit)
+    } else {
+        None
+    };
 
-    match read_data(path, batch_size_opt) {
+    match read_data(path, batch_size_opt, limit_opt) {
+        Ok(batches) => {
+            let mut c_batches: Vec<CRecordBatch> = Vec::new();
+
+            for batch in batches {
+                let json_str = batch_to_json(&batch);
+                let c_json = match CString::new(json_str) {
+                    Ok(s) => s,
+                    Err(_) => CString::new("{}").unwrap(),
+                };
+
+                c_batches.push(CRecordBatch {
+                    json: c_json.into_raw(),
+                    num_rows: batch.num_rows(),
+                    num_columns: batch.num_columns(),
+                });
+            }
+
+            let count = c_batches.len();
+            let batches_ptr = if count > 0 {
+                let mut boxed_slice = c_batches.into_boxed_slice();
+                let ptr = boxed_slice.as_mut_ptr();
+                std::mem::forget(boxed_slice);
+                ptr
+            } else {
+                ptr::null_mut()
+            };
+
+            let result = Box::new(CRecordBatchArray {
+                batches: batches_ptr,
+                count,
+            });
+
+            Box::into_raw(result)
+        }
+        Err(_) => ptr::null_mut(),
+    }
+}
+
+/// Read data with projection from a Parquet or Arrow file
+/// Returns NULL on error, caller must free the returned CRecordBatchArray with parquet_viewer_free_data
+#[unsafe(no_mangle)]
+pub extern "C" fn parquet_viewer_read_data_with_projection(
+    file_path: *const c_char,
+    column_indices: *const usize,
+    column_count: usize,
+    batch_size: usize,
+    limit: usize,
+) -> *mut CRecordBatchArray {
+    if file_path.is_null() || column_indices.is_null() {
+        return ptr::null_mut();
+    }
+
+    let path_str = unsafe {
+        match CStr::from_ptr(file_path).to_str() {
+            Ok(s) => s,
+            Err(_) => return ptr::null_mut(),
+        }
+    };
+
+    let path = Path::new(path_str);
+    
+    // Convert column indices from C array to Vec
+    let column_indices_vec = unsafe {
+        std::slice::from_raw_parts(column_indices, column_count).to_vec()
+    };
+    
+    let batch_size_opt = if batch_size > 0 {
+        Some(batch_size)
+    } else {
+        None
+    };
+    let limit_opt = if limit > 0 {
+        Some(limit)
+    } else {
+        None
+    };
+
+    match read_data_with_projection(path, column_indices_vec, batch_size_opt, limit_opt) {
         Ok(batches) => {
             let mut c_batches: Vec<CRecordBatch> = Vec::new();
 

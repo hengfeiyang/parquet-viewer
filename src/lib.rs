@@ -185,7 +185,11 @@ pub fn read_metadata(file_path: &Path) -> Result<FileMetadata> {
     }
 }
 
-pub fn read_data(file_path: &Path, batch_size: Option<usize>) -> Result<Vec<RecordBatch>> {
+pub fn read_data(
+    file_path: &Path,
+    batch_size: Option<usize>,
+    limit: Option<usize>,
+) -> Result<Vec<RecordBatch>> {
     if !file_path.exists() {
         return Err(ParquetViewerError::FileNotFound(
             file_path.display().to_string(),
@@ -206,8 +210,16 @@ pub fn read_data(file_path: &Path, batch_size: Option<usize>) -> Result<Vec<Reco
             };
 
             let mut batches = Vec::new();
+            let mut count = 0;
             for batch in reader {
-                batches.push(batch?);
+                let batch = batch?;
+                count += batch.num_rows();
+                batches.push(batch);
+                if let Some(limit) = limit {
+                    if count >= limit {
+                        break;
+                    }
+                }
             }
 
             Ok(batches)
@@ -230,6 +242,7 @@ pub fn read_data_with_projection(
     file_path: &Path,
     column_indices: Vec<usize>,
     batch_size: Option<usize>,
+    limit: Option<usize>,
 ) -> Result<Vec<RecordBatch>> {
     if !file_path.exists() {
         return Err(ParquetViewerError::FileNotFound(
@@ -256,8 +269,16 @@ pub fn read_data_with_projection(
             };
 
             let mut batches = Vec::new();
+            let mut count = 0;
             for batch in reader {
-                batches.push(batch?);
+                let batch = batch?;
+                count += batch.num_rows();
+                batches.push(batch);
+                if let Some(limit) = limit {
+                    if count >= limit {
+                        break;
+                    }
+                }
             }
 
             Ok(batches)
@@ -275,6 +296,7 @@ pub fn read_data_with_projection(
             let projected_schema = Arc::new(arrow::datatypes::Schema::new(projected_fields));
 
             let mut batches = Vec::new();
+            let mut count = 0;
             for batch in reader {
                 let batch = batch?;
                 // Project columns
@@ -284,7 +306,13 @@ pub fn read_data_with_projection(
                     .collect();
                 let projected_batch =
                     RecordBatch::try_new(projected_schema.clone(), projected_columns)?;
+                count += projected_batch.num_rows();
                 batches.push(projected_batch);
+                if let Some(limit) = limit {
+                    if count >= limit {
+                        break;
+                    }
+                }
             }
 
             Ok(batches)
@@ -354,7 +382,7 @@ mod tests {
     #[test]
     fn test_read_data() {
         let temp_file = create_test_parquet_file();
-        let batches = read_data(temp_file.path(), None).unwrap();
+        let batches = read_data(temp_file.path(), None,None).unwrap();
 
         assert_eq!(batches.len(), 1);
         let batch = &batches[0];
@@ -365,7 +393,7 @@ mod tests {
     #[test]
     fn test_read_data_with_projection() {
         let temp_file = create_test_parquet_file();
-        let batches = read_data_with_projection(temp_file.path(), vec![1], None).unwrap();
+        let batches = read_data_with_projection(temp_file.path(), vec![1], None, None).unwrap();
 
         assert_eq!(batches.len(), 1);
         let batch = &batches[0];
@@ -440,7 +468,7 @@ mod tests {
     #[test]
     fn test_read_arrow_data() {
         let temp_file = create_test_arrow_file();
-        let batches = read_data(temp_file.path(), None).unwrap();
+        let batches = read_data(temp_file.path(), None, None).unwrap();
 
         assert!(!batches.is_empty());
         let total_rows: usize = batches.iter().map(|b| b.num_rows()).sum();
@@ -451,7 +479,7 @@ mod tests {
     #[test]
     fn test_read_arrow_data_with_projection() {
         let temp_file = create_test_arrow_file();
-        let batches = read_data_with_projection(temp_file.path(), vec![1], None).unwrap();
+        let batches = read_data_with_projection(temp_file.path(), vec![1], None, None).unwrap();
 
         assert!(!batches.is_empty());
         let batch = &batches[0];

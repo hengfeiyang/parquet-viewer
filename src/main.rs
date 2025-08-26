@@ -1,6 +1,6 @@
-use clap::{command, Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, Command, command};
 use parquet_viewer::{read_data, read_metadata, read_schema};
-use prettytable::{Table, Row, Cell};
+use prettytable::{Cell, Row, Table};
 use std::path::Path;
 
 fn main() {
@@ -85,7 +85,7 @@ fn handle_schema(file_path: &str) -> parquet_viewer::Result<()> {
     let schema = read_schema(path)?;
 
     println!("Schema for: {}", file_path);
-    
+
     let mut table = Table::new();
     table.add_row(Row::new(vec![
         Cell::new("Field Name"),
@@ -111,12 +111,9 @@ fn handle_metadata(file_path: &str) -> parquet_viewer::Result<()> {
     let metadata = read_metadata(path)?;
 
     println!("Metadata for: {}", file_path);
-    
+
     let mut table = Table::new();
-    table.add_row(Row::new(vec![
-        Cell::new("Property"),
-        Cell::new("Value"),
-    ]));
+    table.add_row(Row::new(vec![Cell::new("Property"), Cell::new("Value")]));
 
     table.add_row(Row::new(vec![
         Cell::new("File size"),
@@ -152,10 +149,7 @@ fn handle_metadata(file_path: &str) -> parquet_viewer::Result<()> {
         if !kv_metadata.is_empty() {
             println!("\nKey-Value Metadata:");
             let mut kv_table = Table::new();
-            kv_table.add_row(Row::new(vec![
-                Cell::new("Key"),
-                Cell::new("Value"),
-            ]));
+            kv_table.add_row(Row::new(vec![Cell::new("Key"), Cell::new("Value")]));
 
             for (key, value) in kv_metadata {
                 // Truncate long values for better display
@@ -164,11 +158,8 @@ fn handle_metadata(file_path: &str) -> parquet_viewer::Result<()> {
                 } else {
                     value.clone()
                 };
-                
-                kv_table.add_row(Row::new(vec![
-                    Cell::new(&key),
-                    Cell::new(&display_value),
-                ]));
+
+                kv_table.add_row(Row::new(vec![Cell::new(&key), Cell::new(&display_value)]));
             }
 
             kv_table.printstd();
@@ -184,18 +175,12 @@ fn handle_data(
     limit: Option<usize>,
 ) -> parquet_viewer::Result<()> {
     let path = Path::new(file_path);
-    let batches = read_data(path, batch_size)?;
+    let batches = read_data(path, batch_size, limit)?;
 
     println!("Data from: {}", file_path);
 
     let mut total_rows = 0;
     for (batch_idx, batch) in batches.iter().enumerate() {
-        if let Some(limit) = limit {
-            if total_rows >= limit {
-                break;
-            }
-        }
-
         println!(
             "\nBatch {}: {} rows x {} columns",
             batch_idx,
@@ -212,8 +197,11 @@ fn handle_data(
         if rows_to_print > 0 {
             // For wide tables, show data in a more compact format
             if batch.num_columns() > 8 {
-                println!("Showing data in compact format ({} columns):", batch.num_columns());
-                
+                println!(
+                    "Showing data in compact format ({} columns):",
+                    batch.num_columns()
+                );
+
                 for row_idx in 0..rows_to_print {
                     println!("Row {}:", row_idx);
                     for col_idx in 0..batch.num_columns() {
@@ -221,14 +209,14 @@ fn handle_data(
                         let schema = batch.schema();
                         let field = schema.field(col_idx);
                         let value = arrow::util::display::array_value_to_string(column, row_idx)?;
-                        
+
                         // Truncate long values
                         let display_value = if value.len() > 100 {
                             format!("{}...", &value[..100])
                         } else {
                             value
                         };
-                        
+
                         println!("  {}: {}", field.name(), display_value);
                     }
                     println!();
@@ -236,13 +224,17 @@ fn handle_data(
             } else {
                 // Create table for narrower datasets
                 let mut table = Table::new();
-                
+
                 // Add header row
                 let mut header_cells = Vec::new();
                 for col_idx in 0..batch.num_columns() {
                     let schema = batch.schema();
                     let field = schema.field(col_idx);
-                    header_cells.push(Cell::new(&format!("{} ({:?})", field.name(), field.data_type())));
+                    header_cells.push(Cell::new(&format!(
+                        "{} ({:?})",
+                        field.name(),
+                        field.data_type()
+                    )));
                 }
                 table.add_row(Row::new(header_cells));
 
@@ -252,14 +244,14 @@ fn handle_data(
                     for col_idx in 0..batch.num_columns() {
                         let column = batch.column(col_idx);
                         let value = arrow::util::display::array_value_to_string(column, row_idx)?;
-                        
+
                         // Truncate long values for better display
                         let display_value = if value.len() > 30 {
                             format!("{}...", &value[..30])
                         } else {
                             value
                         };
-                        
+
                         row_cells.push(Cell::new(&display_value));
                     }
                     table.add_row(Row::new(row_cells));
