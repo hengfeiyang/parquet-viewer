@@ -1,0 +1,5 @@
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-args=-Wl,-install_name,@rpath/libparquet_viewer.dylib"]
+
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-args=-Wl,-install_name,@rpath/libparquet_viewer.dylib"]

@@ -73,166 +73,18 @@ parquet-viewer data data.parquet --batch-size 1024 --limit 100
 
 ## Swift Integration Guide
 
-### 1. Build the Library
+1. **Build the Library:**
+   ```bash
+   ./build.sh
+   ```
 
-First, build the Rust library with FFI support:
+2. **Add to Xcode Project:**
+   - Copy the generated library and header file to your Xcode project:
+     - Add `Frameworks` to your project (drag and drop)
+     - Add to "Frameworks, Libraries, and Embedded Content"
+     - Set "Embed & Sign" for the library
 
-```bash
-cargo build --release --features ffi
-```
-
-### 2. Add to Xcode Project
-
-1. Copy the generated library and header file to your Xcode project:
-   - `target/release/libparquet_viewer.dylib` (for macOS)
-   - `parquet_viewer.h`
-
-2. In Xcode:
-   - Add `libparquet_viewer.dylib` to your project (drag and drop)
-   - Add to "Frameworks, Libraries, and Embedded Content"
-   - Set "Embed & Sign" for the library
-   - Add `parquet_viewer.h` to your project
-
-3. Create a bridging header (if not exists):
-   - File → New → File → Header File
-   - Name it `YourProject-Bridging-Header.h`
-   - Add: `#import "parquet_viewer.h"`
-
-4. Configure build settings:
-   - Go to Build Settings
-   - Search for "Objective-C Bridging Header"
-   - Set it to `YourProject/YourProject-Bridging-Header.h`
-
-### 3. Swift Wrapper Implementation
-
-Create a Swift wrapper for easier use:
-
-```swift
-import Foundation
-
-class ParquetViewer {
-    
-    // MARK: - Schema Reading
-    
-    static func readSchema(from filePath: String) throws -> Schema {
-        guard let cSchema = filePath.withCString({ parquet_viewer_read_schema($0) }) else {
-            throw ParquetError.failedToReadSchema
-        }
-        defer { parquet_viewer_free_schema(cSchema) }
-        
-        guard let jsonPtr = cSchema.pointee.json,
-              let jsonData = String(cString: jsonPtr).data(using: .utf8) else {
-            throw ParquetError.invalidSchemaFormat
-        }
-        
-        let schema = try JSONDecoder().decode(Schema.self, from: jsonData)
-        return schema
-    }
-    
-    // MARK: - Metadata Reading
-    
-    static func readMetadata(from filePath: String) throws -> FileMetadata {
-        guard let cMetadata = filePath.withCString({ parquet_viewer_read_metadata($0) }) else {
-            throw ParquetError.failedToReadMetadata
-        }
-        defer { parquet_viewer_free_metadata(cMetadata) }
-        
-        let metadata = cMetadata.pointee
-        
-        // Extract key-value metadata
-        var keyValuePairs: [String: String] = [:]
-        if metadata.key_value_count > 0, let kvArray = metadata.key_value_metadata {
-            for i in 0..<metadata.key_value_count {
-                let kv = kvArray[i]
-                if let keyPtr = kv.key, let valuePtr = kv.value {
-                    let key = String(cString: keyPtr)
-                    let value = String(cString: valuePtr)
-                    keyValuePairs[key] = value
-                }
-            }
-        }
-        
-        return FileMetadata(
-            fileSize: metadata.file_size,
-            totalRecords: Int(metadata.total_records),
-            totalFields: metadata.total_fields,
-            totalRowGroups: metadata.total_row_groups,
-            version: Int(metadata.version),
-            createdBy: metadata.created_by.map { String(cString: $0) },
-            keyValueMetadata: keyValuePairs.isEmpty ? nil : keyValuePairs
-        )
-    }
-    
-    // MARK: - Data Reading
-    
-    static func readData(from filePath: String, batchSize: Int = 0) throws -> [RecordBatch] {
-        guard let cBatchArray = filePath.withCString({ 
-            parquet_viewer_read_data($0, batchSize) 
-        }) else {
-            throw ParquetError.failedToReadData
-        }
-        defer { parquet_viewer_free_data(cBatchArray) }
-        
-        var batches: [RecordBatch] = []
-        let batchArray = cBatchArray.pointee
-        
-        if batchArray.count > 0, let batchesPtr = batchArray.batches {
-            for i in 0..<batchArray.count {
-                let cBatch = batchesPtr[i]
-                if let jsonPtr = cBatch.json,
-                   let jsonData = String(cString: jsonPtr).data(using: .utf8) {
-                    let batch = try JSONDecoder().decode(RecordBatch.self, from: jsonData)
-                    batches.append(batch)
-                }
-            }
-        }
-        
-        return batches
-    }
-}
-
-// MARK: - Data Models
-
-struct Schema: Codable {
-    let fields: [Field]
-    
-    struct Field: Codable {
-        let name: String
-        let type: String
-    }
-}
-
-struct FileMetadata {
-    let fileSize: Int
-    let totalRecords: Int
-    let totalFields: Int
-    let totalRowGroups: Int
-    let version: Int
-    let createdBy: String?
-    let keyValueMetadata: [String: String]?
-}
-
-struct RecordBatch: Codable {
-    let columns: [Column]
-    let num_rows: Int
-    let num_columns: Int
-    
-    struct Column: Codable {
-        let name: String
-        let type: String
-    }
-}
-
-enum ParquetError: Error {
-    case failedToReadSchema
-    case failedToReadMetadata
-    case failedToReadData
-    case invalidSchemaFormat
-    case invalidDataFormat
-}
-```
-
-### 4. Usage Example
+### Usage Example
 
 ```swift
 import Foundation
@@ -283,7 +135,7 @@ class ParquetReader {
 }
 ```
 
-### 5. SwiftUI Example
+### SwiftUI Example
 
 ```swift
 import SwiftUI

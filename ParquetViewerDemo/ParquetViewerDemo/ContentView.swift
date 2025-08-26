@@ -45,6 +45,7 @@ struct ContentView: View {
                     welcomeView
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .navigationTitle("Parquet Viewer")
             .fileImporter(
                 isPresented: $isFilePickerPresented,
