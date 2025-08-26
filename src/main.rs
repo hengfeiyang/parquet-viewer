@@ -1,5 +1,6 @@
 use clap::{command, Arg, ArgAction, Command};
 use parquet_viewer::{read_data, read_metadata, read_schema};
+use prettytable::{Table, Row, Cell};
 use std::path::Path;
 
 fn main() {
@@ -84,7 +85,23 @@ fn handle_schema(file_path: &str) -> parquet_viewer::Result<()> {
     let schema = read_schema(path)?;
 
     println!("Schema for: {}", file_path);
-    println!("{:#?}", schema);
+    
+    let mut table = Table::new();
+    table.add_row(Row::new(vec![
+        Cell::new("Field Name"),
+        Cell::new("Data Type"),
+        Cell::new("Nullable"),
+    ]));
+
+    for field in schema.fields() {
+        table.add_row(Row::new(vec![
+            Cell::new(field.name()),
+            Cell::new(&format!("{:?}", field.data_type())),
+            Cell::new(if field.is_nullable() { "Yes" } else { "No" }),
+        ]));
+    }
+
+    table.printstd();
 
     Ok(())
 }
@@ -94,20 +111,67 @@ fn handle_metadata(file_path: &str) -> parquet_viewer::Result<()> {
     let metadata = read_metadata(path)?;
 
     println!("Metadata for: {}", file_path);
-    println!("File size: {} bytes", metadata.file_size);
-    println!("Total records: {}", metadata.total_records);
-    println!("Total fields: {}", metadata.total_fields);
-    println!("Total row groups: {}", metadata.total_row_groups);
-    println!("Parquet version: {}", metadata.version);
+    
+    let mut table = Table::new();
+    table.add_row(Row::new(vec![
+        Cell::new("Property"),
+        Cell::new("Value"),
+    ]));
+
+    table.add_row(Row::new(vec![
+        Cell::new("File size"),
+        Cell::new(&format!("{} bytes", metadata.file_size)),
+    ]));
+    table.add_row(Row::new(vec![
+        Cell::new("Total records"),
+        Cell::new(&metadata.total_records.to_string()),
+    ]));
+    table.add_row(Row::new(vec![
+        Cell::new("Total fields"),
+        Cell::new(&metadata.total_fields.to_string()),
+    ]));
+    table.add_row(Row::new(vec![
+        Cell::new("Total row groups"),
+        Cell::new(&metadata.total_row_groups.to_string()),
+    ]));
+    table.add_row(Row::new(vec![
+        Cell::new("Parquet version"),
+        Cell::new(&metadata.version.to_string()),
+    ]));
 
     if let Some(created_by) = metadata.created_by {
-        println!("Created by: {}", created_by);
+        table.add_row(Row::new(vec![
+            Cell::new("Created by"),
+            Cell::new(&created_by),
+        ]));
     }
 
+    table.printstd();
+
     if let Some(kv_metadata) = metadata.key_value_metadata {
-        println!("\nKey-Value Metadata:");
-        for (key, value) in kv_metadata {
-            println!("  {}: {}", key, value);
+        if !kv_metadata.is_empty() {
+            println!("\nKey-Value Metadata:");
+            let mut kv_table = Table::new();
+            kv_table.add_row(Row::new(vec![
+                Cell::new("Key"),
+                Cell::new("Value"),
+            ]));
+
+            for (key, value) in kv_metadata {
+                // Truncate long values for better display
+                let display_value = if value.len() > 100 {
+                    format!("{}...", &value[..100])
+                } else {
+                    value.clone()
+                };
+                
+                kv_table.add_row(Row::new(vec![
+                    Cell::new(&key),
+                    Cell::new(&display_value),
+                ]));
+            }
+
+            kv_table.printstd();
         }
     }
 
@@ -145,15 +209,64 @@ fn handle_data(
             std::cmp::min(batch.num_rows(), 10)
         };
 
-        for col_idx in 0..batch.num_columns() {
-            let column = batch.column(col_idx);
-            let schema = batch.schema();
-            let field = schema.field(col_idx);
-            println!("\nColumn '{}' ({}): ", field.name(), field.data_type());
+        if rows_to_print > 0 {
+            // For wide tables, show data in a more compact format
+            if batch.num_columns() > 8 {
+                println!("Showing data in compact format ({} columns):", batch.num_columns());
+                
+                for row_idx in 0..rows_to_print {
+                    println!("Row {}:", row_idx);
+                    for col_idx in 0..batch.num_columns() {
+                        let column = batch.column(col_idx);
+                        let schema = batch.schema();
+                        let field = schema.field(col_idx);
+                        let value = arrow::util::display::array_value_to_string(column, row_idx)?;
+                        
+                        // Truncate long values
+                        let display_value = if value.len() > 100 {
+                            format!("{}...", &value[..100])
+                        } else {
+                            value
+                        };
+                        
+                        println!("  {}: {}", field.name(), display_value);
+                    }
+                    println!();
+                }
+            } else {
+                // Create table for narrower datasets
+                let mut table = Table::new();
+                
+                // Add header row
+                let mut header_cells = Vec::new();
+                for col_idx in 0..batch.num_columns() {
+                    let schema = batch.schema();
+                    let field = schema.field(col_idx);
+                    header_cells.push(Cell::new(&format!("{} ({:?})", field.name(), field.data_type())));
+                }
+                table.add_row(Row::new(header_cells));
 
-            for row_idx in 0..rows_to_print {
-                let value = arrow::util::display::array_value_to_string(column, row_idx)?;
-                println!("  [{}]: {}", row_idx, value);
+                // Add data rows
+                for row_idx in 0..rows_to_print {
+                    let mut row_cells = Vec::new();
+                    for col_idx in 0..batch.num_columns() {
+                        let column = batch.column(col_idx);
+                        let value = arrow::util::display::array_value_to_string(column, row_idx)?;
+                        
+                        // Truncate long values for better display
+                        let display_value = if value.len() > 30 {
+                            format!("{}...", &value[..30])
+                        } else {
+                            value
+                        };
+                        
+                        row_cells.push(Cell::new(&display_value));
+                    }
+                    table.add_row(Row::new(row_cells));
+                }
+
+                table.set_format(*prettytable::format::consts::FORMAT_BOX_CHARS);
+                table.printstd();
             }
         }
 
