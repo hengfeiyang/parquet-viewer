@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		93F821192E5D70470095FAF6 /* ParquetViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93F821172E5D70470095FAF6 /* ParquetViewer.swift */; };
-		93F8211A2E5D70470095FAF6 /* libparquet_viewer.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 93F821152E5D70470095FAF6 /* libparquet_viewer.dylib */; };
-		93F8211B2E5D70500095FAF6 /* libparquet_viewer.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 93F821152E5D70470095FAF6 /* libparquet_viewer.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		93EEB3462E5D759600B24B08 /* ParquetViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93EEB3442E5D759600B24B08 /* ParquetViewer.swift */; };
+		93EEB3472E5D759600B24B08 /* libparquet_viewer.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 93EEB3422E5D759600B24B08 /* libparquet_viewer.dylib */; };
+		93EEB3482E5D759E00B24B08 /* libparquet_viewer.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 93EEB3422E5D759600B24B08 /* libparquet_viewer.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -19,7 +19,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				93F8211B2E5D70500095FAF6 /* libparquet_viewer.dylib in Embed Frameworks */,
+				93EEB3482E5D759E00B24B08 /* libparquet_viewer.dylib in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -28,9 +28,9 @@
 
 /* Begin PBXFileReference section */
 		933386A82E5CB9460066F901 /* ParquetViewerDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ParquetViewerDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		93F821152E5D70470095FAF6 /* libparquet_viewer.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libparquet_viewer.dylib; sourceTree = "<group>"; };
-		93F821162E5D70470095FAF6 /* parquet_viewer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = parquet_viewer.h; sourceTree = "<group>"; };
-		93F821172E5D70470095FAF6 /* ParquetViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParquetViewer.swift; sourceTree = "<group>"; };
+		93EEB3422E5D759600B24B08 /* libparquet_viewer.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libparquet_viewer.dylib; sourceTree = "<group>"; };
+		93EEB3432E5D759600B24B08 /* parquet_viewer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = parquet_viewer.h; sourceTree = "<group>"; };
+		93EEB3442E5D759600B24B08 /* ParquetViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParquetViewer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -46,7 +46,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				93F8211A2E5D70470095FAF6 /* libparquet_viewer.dylib in Frameworks */,
+				93EEB3472E5D759600B24B08 /* libparquet_viewer.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -56,7 +56,7 @@
 		9333869F2E5CB9460066F901 = {
 			isa = PBXGroup;
 			children = (
-				93F821182E5D70470095FAF6 /* Frameworks */,
+				93EEB3452E5D759600B24B08 /* Frameworks */,
 				933386AA2E5CB9460066F901 /* ParquetViewerDemo */,
 				933386A92E5CB9460066F901 /* Products */,
 			);
@@ -70,12 +70,12 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		93F821182E5D70470095FAF6 /* Frameworks */ = {
+		93EEB3452E5D759600B24B08 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				93F821152E5D70470095FAF6 /* libparquet_viewer.dylib */,
-				93F821162E5D70470095FAF6 /* parquet_viewer.h */,
-				93F821172E5D70470095FAF6 /* ParquetViewer.swift */,
+				93EEB3422E5D759600B24B08 /* libparquet_viewer.dylib */,
+				93EEB3432E5D759600B24B08 /* parquet_viewer.h */,
+				93EEB3442E5D759600B24B08 /* ParquetViewer.swift */,
 			);
 			path = Frameworks;
 			sourceTree = "<group>";
@@ -157,7 +157,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				93F821192E5D70470095FAF6 /* ParquetViewer.swift in Sources */,
+				93EEB3462E5D759600B24B08 /* ParquetViewer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -308,6 +308,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -355,6 +356,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
