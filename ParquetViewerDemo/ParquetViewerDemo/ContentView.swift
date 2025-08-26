@@ -12,53 +12,51 @@ struct ContentView: View {
     @State private var selectedTab = 0
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // Header with file picker
-                headerView
-                
-                if selectedFile != nil {
-                    // Tab view for file analysis
-                    TabView(selection: $selectedTab) {
-                        SchemaView(schema: schema)
-                            .tabItem {
-                                Label("Schema", systemImage: "list.bullet")
-                            }
-                            .tag(0)
-                        
-                        MetadataView(metadata: metadata)
-                            .tabItem {
-                                Label("Metadata", systemImage: "info.circle")
-                            }
-                            .tag(1)
-                        
-                        DataView(recordBatches: recordBatches)
-                            .tabItem {
-                                Label("Data", systemImage: "doc.text")
-                            }
-                            .tag(2)
-                        
-                        TableView(recordBatches: recordBatches)
-                            .tabItem {
-                                Label("Table", systemImage: "tablecells")
-                            }
-                            .tag(3)
-                    }
-                    .padding(.top, 1)
-                } else {
-                    // Welcome view when no file is selected
-                    welcomeView
+        VStack(spacing: 0) {
+            // Header with file picker
+            headerView
+            
+            if selectedFile != nil {
+                // Tab view for file analysis
+                TabView(selection: $selectedTab) {
+                    SchemaView(schema: schema)
+                        .tabItem {
+                            Label("Schema", systemImage: "list.bullet")
+                        }
+                        .tag(0)
+                    
+                    MetadataView(metadata: metadata)
+                        .tabItem {
+                            Label("Metadata", systemImage: "info.circle")
+                        }
+                        .tag(1)
+                    
+                    DataView(recordBatches: recordBatches)
+                        .tabItem {
+                            Label("Data", systemImage: "doc.text")
+                        }
+                        .tag(2)
+                    
+                    TableView(recordBatches: recordBatches)
+                        .tabItem {
+                            Label("Table", systemImage: "tablecells")
+                        }
+                        .tag(3)
                 }
+                .padding(.top, 1)
+            } else {
+                // Welcome view when no file is selected
+                welcomeView
             }
-            .frame(minWidth: 800, minHeight: 600)
-            .navigationTitle("Parquet Viewer")
-            .fileImporter(
-                isPresented: $isFilePickerPresented,
-                allowedContentTypes: [UTType(filenameExtension: "parquet")!, UTType(filenameExtension: "arrow")!],
-                allowsMultipleSelection: false
-            ) { result in
-                handleFileSelection(result)
-            }
+        }
+        .frame(minWidth: 800, minHeight: 600)
+        .navigationTitle("Parquet Viewer")
+        .fileImporter(
+            isPresented: $isFilePickerPresented,
+            allowedContentTypes: [UTType(filenameExtension: "parquet")!, UTType(filenameExtension: "arrow")!],
+            allowsMultipleSelection: false
+        ) { result in
+            handleFileSelection(result)
         }
     }
     
