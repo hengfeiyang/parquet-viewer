@@ -1,6 +1,5 @@
 import SwiftUI
 import UniformTypeIdentifiers
-import ParquetViewer
 
 struct ContentView: View {
     @State private var selectedFile: URL?

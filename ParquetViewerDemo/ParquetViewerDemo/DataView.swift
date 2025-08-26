@@ -1,5 +1,4 @@
 import SwiftUI
-import ParquetViewer
 
 struct DataView: View {
     let recordBatches: [RecordBatch]

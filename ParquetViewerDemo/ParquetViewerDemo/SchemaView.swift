@@ -1,5 +1,4 @@
 import SwiftUI
-import ParquetViewer
 
 struct SchemaView: View {
     let schema: Schema?

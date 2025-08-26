@@ -1,5 +1,4 @@
 import SwiftUI
-import ParquetViewer
 
 struct MetadataView: View {
     let metadata: FileMetadata?
