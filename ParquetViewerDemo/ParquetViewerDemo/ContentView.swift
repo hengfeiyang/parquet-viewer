@@ -34,9 +34,15 @@ struct ContentView: View {
                         
                         DataView(recordBatches: recordBatches)
                             .tabItem {
-                                Label("Data", systemImage: "tablecells")
+                                Label("Data", systemImage: "doc.text")
                             }
                             .tag(2)
+                        
+                        TableView(recordBatches: recordBatches)
+                            .tabItem {
+                                Label("Table", systemImage: "tablecells")
+                            }
+                            .tag(3)
                     }
                     .padding(.top, 1)
                 } else {
@@ -44,7 +50,7 @@ struct ContentView: View {
                     welcomeView
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(minWidth: 800, minHeight: 600)
             .navigationTitle("Parquet Viewer")
             .fileImporter(
                 isPresented: $isFilePickerPresented,

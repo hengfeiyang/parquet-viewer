@@ -8,8 +8,9 @@ struct ParquetViewerDemoApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .frame(minWidth: 800, minHeight: 600)
         }
         .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .defaultSize(width: 800, height: 600)
     }
 }

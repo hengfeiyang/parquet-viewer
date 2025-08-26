@@ -99,14 +99,17 @@ struct DataView: View {
     
     private func parseDataPreview(_ jsonString: String) -> String? {
         guard let data = jsonString.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+              let jsonArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
             return nil
         }
         
-        // Try to extract column information
-        if let columns = json["columns"] as? [[String: Any]] {
-            let columnNames = columns.compactMap { $0["name"] as? String }
-            return "Columns: " + columnNames.joined(separator: ", ")
+        // The new format is an array of row objects
+        if !jsonArray.isEmpty {
+            let firstRow = jsonArray[0]
+            let columnNames = Array(firstRow.keys)
+            let preview = "Columns: " + columnNames.joined(separator: ", ")
+            let rowCount = jsonArray.count
+            return "\(rowCount) rows with \(columnNames.count) columns - \(preview)"
         }
         
         // Fallback to showing the JSON structure

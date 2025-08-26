@@ -42,9 +42,21 @@ struct SchemaView: View {
                                         .font(.body)
                                         .fontWeight(.medium)
                                     
-                                    Text(field.type)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                                    HStack(spacing: 4) {
+                                        Text(field.dataType)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        
+                                        if field.nullable {
+                                            Text("(nullable)")
+                                                .font(.caption2)
+                                                .foregroundColor(.orange)
+                                                .padding(.horizontal, 4)
+                                                .padding(.vertical, 1)
+                                                .background(Color.orange.opacity(0.1))
+                                                .cornerRadius(3)
+                                        }
+                                    }
                                 }
                                 
                                 Spacer()
