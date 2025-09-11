@@ -1,4 +1,6 @@
-use crate::{read_data, read_data_with_projection, read_metadata, read_schema};
+use crate::{
+    SqlFormatStyle, read_data, read_data_with_projection, read_metadata, read_schema, sql_format,
+};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::path::Path;
@@ -132,33 +134,40 @@ pub extern "C" fn parquet_viewer_read_metadata(file_path: *const c_char) -> *mut
                 .unwrap_or(ptr::null_mut());
 
             // Convert key-value metadata
-            let (key_value_metadata, key_value_count) = if let Some(kv_pairs) = metadata.key_value_metadata {
-                let mut c_kv_pairs: Vec<CKeyValue> = Vec::new();
-                
-                for (key, value) in kv_pairs {
-                    let c_key = CString::new(key).ok().map(|s| s.into_raw()).unwrap_or(ptr::null_mut());
-                    let c_value = CString::new(value).ok().map(|s| s.into_raw()).unwrap_or(ptr::null_mut());
-                    
-                    c_kv_pairs.push(CKeyValue {
-                        key: c_key,
-                        value: c_value,
-                    });
-                }
-                
-                let count = c_kv_pairs.len();
-                let ptr = if count > 0 {
-                    let mut boxed_slice = c_kv_pairs.into_boxed_slice();
-                    let ptr = boxed_slice.as_mut_ptr();
-                    std::mem::forget(boxed_slice);
-                    ptr
+            let (key_value_metadata, key_value_count) =
+                if let Some(kv_pairs) = metadata.key_value_metadata {
+                    let mut c_kv_pairs: Vec<CKeyValue> = Vec::new();
+
+                    for (key, value) in kv_pairs {
+                        let c_key = CString::new(key)
+                            .ok()
+                            .map(|s| s.into_raw())
+                            .unwrap_or(ptr::null_mut());
+                        let c_value = CString::new(value)
+                            .ok()
+                            .map(|s| s.into_raw())
+                            .unwrap_or(ptr::null_mut());
+
+                        c_kv_pairs.push(CKeyValue {
+                            key: c_key,
+                            value: c_value,
+                        });
+                    }
+
+                    let count = c_kv_pairs.len();
+                    let ptr = if count > 0 {
+                        let mut boxed_slice = c_kv_pairs.into_boxed_slice();
+                        let ptr = boxed_slice.as_mut_ptr();
+                        std::mem::forget(boxed_slice);
+                        ptr
+                    } else {
+                        ptr::null_mut()
+                    };
+
+                    (ptr, count)
                 } else {
-                    ptr::null_mut()
+                    (ptr::null_mut(), 0)
                 };
-                
-                (ptr, count)
-            } else {
-                (ptr::null_mut(), 0)
-            };
 
             let c_metadata = Box::new(CFileMetadata {
                 file_size: metadata.file_size,
@@ -202,11 +211,7 @@ pub extern "C" fn parquet_viewer_read_data(
     } else {
         None
     };
-    let limit_opt = if limit > 0 {
-        Some(limit)
-    } else {
-        None
-    };
+    let limit_opt = if limit > 0 { Some(limit) } else { None };
 
     match read_data(path, batch_size_opt, limit_opt) {
         Ok(batches) => {
@@ -269,22 +274,17 @@ pub extern "C" fn parquet_viewer_read_data_with_projection(
     };
 
     let path = Path::new(path_str);
-    
+
     // Convert column indices from C array to Vec
-    let column_indices_vec = unsafe {
-        std::slice::from_raw_parts(column_indices, column_count).to_vec()
-    };
-    
+    let column_indices_vec =
+        unsafe { std::slice::from_raw_parts(column_indices, column_count).to_vec() };
+
     let batch_size_opt = if batch_size > 0 {
         Some(batch_size)
     } else {
         None
     };
-    let limit_opt = if limit > 0 {
-        Some(limit)
-    } else {
-        None
-    };
+    let limit_opt = if limit > 0 { Some(limit) } else { None };
 
     match read_data_with_projection(path, column_indices_vec, batch_size_opt, limit_opt) {
         Ok(batches) => {
@@ -325,6 +325,48 @@ pub extern "C" fn parquet_viewer_read_data_with_projection(
     }
 }
 
+/// Format SQL with specified style (0 = Minimal, 1 = Beautify)
+/// Returns NULL on error, caller must free the returned string with parquet_viewer_free_string
+#[unsafe(no_mangle)]
+pub extern "C" fn parquet_viewer_sql_format(sql: *const c_char, style: i32) -> *mut c_char {
+    if sql.is_null() {
+        return ptr::null_mut();
+    }
+
+    let sql_str = unsafe {
+        match CStr::from_ptr(sql).to_str() {
+            Ok(s) => s,
+            Err(_) => return ptr::null_mut(),
+        }
+    };
+
+    let format_style = match style {
+        0 => SqlFormatStyle::Minimal,
+        1 => SqlFormatStyle::Beautify,
+        _ => SqlFormatStyle::Minimal, // Default to minimal
+    };
+
+    match sql_format(sql_str, format_style) {
+        Ok(formatted) => match CString::new(formatted) {
+            Ok(c_string) => c_string.into_raw(),
+            Err(_) => ptr::null_mut(),
+        },
+        Err(_) => ptr::null_mut(),
+    }
+}
+
+/// Free a string returned by parquet_viewer_sql_format
+#[unsafe(no_mangle)]
+pub extern "C" fn parquet_viewer_free_string(string: *mut c_char) {
+    if string.is_null() {
+        return;
+    }
+
+    unsafe {
+        let _ = CString::from_raw(string);
+    }
+}
+
 /// Free a CSchema returned by parquet_viewer_read_schema
 #[unsafe(no_mangle)]
 pub extern "C" fn parquet_viewer_free_schema(schema: *mut CSchema) {
@@ -357,12 +399,12 @@ pub extern "C" fn parquet_viewer_free_metadata(metadata: *mut CFileMetadata) {
 
     unsafe {
         let metadata = Box::from_raw(metadata);
-        
+
         // Free created_by string
         if !metadata.created_by.is_null() {
             let _ = CString::from_raw(metadata.created_by);
         }
-        
+
         // Free key-value metadata
         if !metadata.key_value_metadata.is_null() && metadata.key_value_count > 0 {
             let kv_pairs = Vec::from_raw_parts(
@@ -370,7 +412,7 @@ pub extern "C" fn parquet_viewer_free_metadata(metadata: *mut CFileMetadata) {
                 metadata.key_value_count,
                 metadata.key_value_count,
             );
-            
+
             for kv in kv_pairs {
                 if !kv.key.is_null() {
                     let _ = CString::from_raw(kv.key);
@@ -414,7 +456,7 @@ pub extern "C" fn parquet_viewer_get_last_error() -> *const c_char {
 
 fn batch_to_json(batch: &arrow::array::RecordBatch) -> String {
     use serde_json::Value;
-    
+
     let mut rows = Vec::new();
     for row_idx in 0..batch.num_rows() {
         let mut row_obj = serde_json::Map::new();
@@ -422,8 +464,9 @@ fn batch_to_json(batch: &arrow::array::RecordBatch) -> String {
             let column = batch.column(col_idx);
             let schema = batch.schema();
             let field = schema.field(col_idx);
-            let value_str = arrow::util::display::array_value_to_string(column, row_idx).unwrap_or_else(|_| "null".to_string());
-            
+            let value_str = arrow::util::display::array_value_to_string(column, row_idx)
+                .unwrap_or_else(|_| "null".to_string());
+
             // Convert the value string to appropriate JSON value
             let json_value = if value_str == "null" {
                 Value::Null
@@ -447,11 +490,11 @@ fn batch_to_json(batch: &arrow::array::RecordBatch) -> String {
                     Value::String(value_str)
                 }
             };
-            
+
             row_obj.insert(field.name().to_string(), json_value);
         }
         rows.push(Value::Object(row_obj));
     }
-    
+
     serde_json::to_string(&rows).unwrap_or_else(|_| "[]".to_string())
 }

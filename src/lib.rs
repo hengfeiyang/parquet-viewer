@@ -4,6 +4,8 @@ use arrow_schema::SchemaRef;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use parquet::arrow::{ProjectionMask, parquet_to_arrow_schema};
 use parquet::file::reader::{FileReader, SerializedFileReader};
+use sqlparser::dialect::PostgreSqlDialect;
+use sqlparser::parser::Parser;
 use std::fs::File;
 use std::path::Path;
 use std::sync::Arc;
@@ -22,6 +24,8 @@ pub enum ParquetViewerError {
     Arrow(#[from] arrow::error::ArrowError),
     #[error("File not found: {0}")]
     FileNotFound(String),
+    #[error("SQL parser error: {0}")]
+    SqlParser(#[from] sqlparser::parser::ParserError),
 }
 
 pub type Result<T> = std::result::Result<T, ParquetViewerError>;
@@ -215,10 +219,10 @@ pub fn read_data(
                 let batch = batch?;
                 count += batch.num_rows();
                 batches.push(batch);
-                if let Some(limit) = limit {
-                    if count >= limit {
-                        break;
-                    }
+                if let Some(limit) = limit
+                    && count >= limit
+                {
+                    break;
                 }
             }
 
@@ -274,10 +278,10 @@ pub fn read_data_with_projection(
                 let batch = batch?;
                 count += batch.num_rows();
                 batches.push(batch);
-                if let Some(limit) = limit {
-                    if count >= limit {
-                        break;
-                    }
+                if let Some(limit) = limit
+                    && count >= limit
+                {
+                    break;
                 }
             }
 
@@ -308,16 +312,45 @@ pub fn read_data_with_projection(
                     RecordBatch::try_new(projected_schema.clone(), projected_columns)?;
                 count += projected_batch.num_rows();
                 batches.push(projected_batch);
-                if let Some(limit) = limit {
-                    if count >= limit {
-                        break;
-                    }
+                if let Some(limit) = limit
+                    && count >= limit
+                {
+                    break;
                 }
             }
 
             Ok(batches)
         }
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum SqlFormatStyle {
+    Minimal,
+    Beautify,
+}
+
+pub fn sql_format(sql: &str, style: SqlFormatStyle) -> Result<String> {
+    let dialect = PostgreSqlDialect {};
+    let ast = Parser::parse_sql(&dialect, sql)?;
+
+    if ast.is_empty() {
+        return Ok(sql.to_string());
+    }
+
+    let sql = match style {
+        SqlFormatStyle::Minimal => {
+            // For minimal format
+            ast.iter().map(|stmt| stmt.to_string()).collect::<Vec<_>>()
+        }
+        SqlFormatStyle::Beautify => {
+            // For beautify format, see https://docs.rs/sqlparser/latest/sqlparser/#pretty-printing
+            ast.iter()
+                .map(|stmt| format!("{:#}", stmt))
+                .collect::<Vec<_>>()
+        }
+    };
+    Ok(sql.join(";\n\n"))
 }
 
 #[cfg(test)]
@@ -382,7 +415,7 @@ mod tests {
     #[test]
     fn test_read_data() {
         let temp_file = create_test_parquet_file();
-        let batches = read_data(temp_file.path(), None,None).unwrap();
+        let batches = read_data(temp_file.path(), None, None).unwrap();
 
         assert_eq!(batches.len(), 1);
         let batch = &batches[0];
@@ -485,5 +518,105 @@ mod tests {
         let batch = &batches[0];
         assert_eq!(batch.num_columns(), 1);
         assert_eq!(batch.schema().field(0).name(), "name");
+    }
+
+    #[test]
+    fn test_sql_format_minimal() {
+        let sql = "SELECT u.id, u.name, u.email, p.title as project_title, COUNT(t.id) as task_count FROM users u INNER JOIN projects p ON u.id = p.user_id LEFT JOIN tasks t ON p.id = t.project_id WHERE u.active = 1 AND p.status = 'active' AND t.completed = 0 GROUP BY u.id, p.id HAVING COUNT(t.id) > 0 ORDER BY u.name, task_count DESC LIMIT 10";
+        let expected = r#"SELECT u.id, u.name, u.email, p.title AS project_title, COUNT(t.id) AS task_count FROM users AS u INNER JOIN projects AS p ON u.id = p.user_id LEFT JOIN tasks AS t ON p.id = t.project_id WHERE u.active = 1 AND p.status = 'active' AND t.completed = 0 GROUP BY u.id, p.id HAVING COUNT(t.id) > 0 ORDER BY u.name, task_count DESC LIMIT 10"#;
+        let formatted = sql_format(sql, SqlFormatStyle::Minimal).unwrap();
+        assert_eq!(formatted, expected);
+
+        let sql = "SELECT vtc,COUNT(_timestamp)AS COUNT,ARRAY_AGG(DISTINCT PATH)AS values_path,ARRAY_AGG(DISTINCT graphqlop)AS values_graphqlop,COUNT(DISTINCT graphqlop)AS dc_graphqlop,ARRAY_AGG(DISTINCT risk_rules)AS values_risk_rules,ARRAY_AGG(DISTINCT px_vid)AS values_px_vid,ARRAY_AGG(DISTINCT px_score)AS values_px_score,ARRAY_AGG(DISTINCT tbc_path)AS values_tbc_path,ARRAY_AGG(DISTINCT cipherorder)AS values_cipherorder,ARRAY_AGG(DISTINCT cookie)AS values_cookie,ARRAY_AGG(DISTINCT clientip)AS values_clientip,ARRAY_AGG(DISTINCT user_agent)AS values_user_agent FROM zinc WHERE hostname IN('www.google.com','www.something.com')AND vtc IN(SELECT DISTINCT vtc FROM zinc WHERE hostname='www.something.com' AND graphqlop='SignInV2' AND status=412 ORDER BY vtc LIMIT 10000)GROUP BY vtc ORDER BY vtc";
+        let expected = r#"SELECT vtc, COUNT(_timestamp) AS COUNT, ARRAY_AGG(DISTINCT PATH) AS values_path, ARRAY_AGG(DISTINCT graphqlop) AS values_graphqlop, COUNT(DISTINCT graphqlop) AS dc_graphqlop, ARRAY_AGG(DISTINCT risk_rules) AS values_risk_rules, ARRAY_AGG(DISTINCT px_vid) AS values_px_vid, ARRAY_AGG(DISTINCT px_score) AS values_px_score, ARRAY_AGG(DISTINCT tbc_path) AS values_tbc_path, ARRAY_AGG(DISTINCT cipherorder) AS values_cipherorder, ARRAY_AGG(DISTINCT cookie) AS values_cookie, ARRAY_AGG(DISTINCT clientip) AS values_clientip, ARRAY_AGG(DISTINCT user_agent) AS values_user_agent FROM zinc WHERE hostname IN ('www.google.com', 'www.something.com') AND vtc IN (SELECT DISTINCT vtc FROM zinc WHERE hostname = 'www.something.com' AND graphqlop = 'SignInV2' AND status = 412 ORDER BY vtc LIMIT 10000) GROUP BY vtc ORDER BY vtc"#;
+        let formatted = sql_format(sql, SqlFormatStyle::Minimal).unwrap();
+        assert_eq!(formatted, expected);
+    }
+
+    #[test]
+    fn test_sql_format_beautify() {
+        let sql = "SELECT u.id, u.name, u.email, p.title as project_title, COUNT(t.id) as task_count FROM users u INNER JOIN projects p ON u.id = p.user_id LEFT JOIN tasks t ON p.id = t.project_id WHERE u.active = 1 AND p.status = 'active' AND t.completed = 0 GROUP BY u.id, p.id HAVING COUNT(t.id) > 0 ORDER BY u.name, task_count DESC LIMIT 10";
+        let expected = r#"SELECT
+  u.id,
+  u.name,
+  u.email,
+  p.title AS project_title,
+  COUNT(t.id) AS task_count
+FROM
+  users AS u
+  INNER JOIN projects AS p ON u.id = p.user_id
+  LEFT JOIN tasks AS t ON p.id = t.project_id
+WHERE
+  u.active = 1 AND p.status = 'active' AND t.completed = 0
+GROUP BY
+  u.id, p.id
+HAVING
+  COUNT(t.id) > 0 ORDER BY u.name, task_count DESC LIMIT 10"#;
+
+        let formatted = sql_format(sql, SqlFormatStyle::Beautify).unwrap();
+        assert_eq!(formatted, expected);
+
+        let sql = "SELECT vtc,COUNT(_timestamp)AS COUNT,ARRAY_AGG(DISTINCT PATH)AS values_path,ARRAY_AGG(DISTINCT graphqlop)AS values_graphqlop,COUNT(DISTINCT graphqlop)AS dc_graphqlop,ARRAY_AGG(DISTINCT risk_rules)AS values_risk_rules,ARRAY_AGG(DISTINCT px_vid)AS values_px_vid,ARRAY_AGG(DISTINCT px_score)AS values_px_score,ARRAY_AGG(DISTINCT tbc_path)AS values_tbc_path,ARRAY_AGG(DISTINCT cipherorder)AS values_cipherorder,ARRAY_AGG(DISTINCT cookie)AS values_cookie,ARRAY_AGG(DISTINCT clientip)AS values_clientip,ARRAY_AGG(DISTINCT user_agent)AS values_user_agent FROM zinc WHERE hostname IN('www.google.com','www.something.com')AND vtc IN(SELECT DISTINCT vtc FROM zinc WHERE hostname='www.something.com' AND graphqlop='SignInV2' AND status=412 ORDER BY vtc LIMIT 10000)GROUP BY vtc ORDER BY vtc";
+        let expected = r#"SELECT
+  vtc,
+  COUNT(_timestamp) AS COUNT,
+  ARRAY_AGG(DISTINCT PATH) AS values_path,
+  ARRAY_AGG(DISTINCT graphqlop) AS values_graphqlop,
+  COUNT(DISTINCT graphqlop) AS dc_graphqlop,
+  ARRAY_AGG(DISTINCT risk_rules) AS values_risk_rules,
+  ARRAY_AGG(DISTINCT px_vid) AS values_px_vid,
+  ARRAY_AGG(DISTINCT px_score) AS values_px_score,
+  ARRAY_AGG(DISTINCT tbc_path) AS values_tbc_path,
+  ARRAY_AGG(DISTINCT cipherorder) AS values_cipherorder,
+  ARRAY_AGG(DISTINCT cookie) AS values_cookie,
+  ARRAY_AGG(DISTINCT clientip) AS values_clientip,
+  ARRAY_AGG(DISTINCT user_agent) AS values_user_agent
+FROM
+  zinc
+WHERE
+  hostname IN ('www.google.com', 'www.something.com') AND vtc IN (SELECT DISTINCT vtc FROM zinc WHERE hostname = 'www.something.com' AND graphqlop = 'SignInV2' AND status = 412 ORDER BY vtc LIMIT 10000)
+GROUP BY
+  vtc ORDER BY vtc"#;
+        let formatted = sql_format(sql, SqlFormatStyle::Beautify).unwrap();
+        assert_eq!(formatted, expected);
+    }
+
+    #[test]
+    fn test_sql_format_minimal_simple() {
+        let sql = "SELECT   id,  name   FROM   users  WHERE  age > 18";
+        let expected = r#"SELECT id, name FROM users WHERE age > 18"#;
+        let formatted = sql_format(sql, SqlFormatStyle::Minimal).unwrap();
+        assert_eq!(formatted, expected);
+    }
+
+    #[test]
+    fn test_sql_format_beautify_multiple() {
+        let sql = "select id,name from users where age>18;insert into logs values(1,'test')";
+        let expected = r#"SELECT
+  id,
+  name
+FROM
+  users
+WHERE
+  age > 18;
+
+INSERT INTO logs VALUES
+  (1, 'test')"#;
+        let formatted = sql_format(sql, SqlFormatStyle::Beautify).unwrap();
+        assert_eq!(formatted, expected);
+    }
+
+    #[test]
+    fn test_sql_format_empty() {
+        let sql = "";
+        let formatted = sql_format(sql, SqlFormatStyle::Minimal).unwrap();
+        assert_eq!(formatted, "");
+    }
+
+    #[test]
+    fn test_sql_format_invalid() {
+        let sql = "INVALID SQL SYNTAX HERE";
+        let result = sql_format(sql, SqlFormatStyle::Minimal);
+        assert!(result.is_err());
     }
 }

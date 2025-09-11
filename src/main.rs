@@ -1,5 +1,5 @@
 use clap::{Arg, ArgAction, Command, command};
-use parquet_viewer::{read_data, read_metadata, read_schema};
+use parquet_viewer::{SqlFormatStyle, read_data, read_metadata, read_schema, sql_format};
 use prettytable::{Cell, Row, Table};
 use std::path::Path;
 
@@ -53,6 +53,25 @@ fn main() {
                         .action(ArgAction::Set),
                 ),
         )
+        .subcommand(
+            Command::new("sql")
+                .about("Format SQL queries")
+                .arg(
+                    Arg::new("query")
+                        .help("SQL query to format (use '-' to read from stdin)")
+                        .required(true)
+                        .index(1),
+                )
+                .arg(
+                    Arg::new("style")
+                        .short('s')
+                        .long("style")
+                        .help("Formatting style")
+                        .value_parser(["minimal", "beautify"])
+                        .default_value("beautify")
+                        .action(ArgAction::Set),
+                ),
+        )
         .subcommand_required(true)
         .get_matches();
 
@@ -70,6 +89,11 @@ fn main() {
             let batch_size = sub_matches.get_one::<usize>("batch-size").copied();
             let limit = sub_matches.get_one::<usize>("limit").copied();
             handle_data(file_path, batch_size, limit)
+        }
+        Some(("sql", sub_matches)) => {
+            let query = sub_matches.get_one::<String>("query").unwrap();
+            let style = sub_matches.get_one::<String>("style").unwrap();
+            handle_sql(query, style)
         }
         _ => unreachable!(),
     };
@@ -145,25 +169,25 @@ fn handle_metadata(file_path: &str) -> parquet_viewer::Result<()> {
 
     table.printstd();
 
-    if let Some(kv_metadata) = metadata.key_value_metadata {
-        if !kv_metadata.is_empty() {
-            println!("\nKey-Value Metadata:");
-            let mut kv_table = Table::new();
-            kv_table.add_row(Row::new(vec![Cell::new("Key"), Cell::new("Value")]));
+    if let Some(kv_metadata) = metadata.key_value_metadata
+        && !kv_metadata.is_empty()
+    {
+        println!("\nKey-Value Metadata:");
+        let mut kv_table = Table::new();
+        kv_table.add_row(Row::new(vec![Cell::new("Key"), Cell::new("Value")]));
 
-            for (key, value) in kv_metadata {
-                // Truncate long values for better display
-                let display_value = if value.len() > 100 {
-                    format!("{}...", &value[..100])
-                } else {
-                    value.clone()
-                };
+        for (key, value) in kv_metadata {
+            // Truncate long values for better display
+            let display_value = if value.len() > 100 {
+                format!("{}...", &value[..100])
+            } else {
+                value.clone()
+            };
 
-                kv_table.add_row(Row::new(vec![Cell::new(&key), Cell::new(&display_value)]));
-            }
-
-            kv_table.printstd();
+            kv_table.add_row(Row::new(vec![Cell::new(&key), Cell::new(&display_value)]));
         }
+
+        kv_table.printstd();
     }
 
     Ok(())
@@ -273,6 +297,35 @@ fn handle_data(
     }
 
     println!("\nTotal rows displayed: {}", total_rows);
+
+    Ok(())
+}
+
+fn handle_sql(query: &str, style: &str) -> parquet_viewer::Result<()> {
+    // Handle reading from stdin if query is "-"
+    let sql_input = if query == "-" {
+        let mut input = String::new();
+        use std::io::Read;
+        std::io::stdin()
+            .read_to_string(&mut input)
+            .map_err(parquet_viewer::ParquetViewerError::Io)?;
+        input
+    } else {
+        query.to_string()
+    };
+
+    // Parse style
+    let format_style = match style {
+        "minimal" => SqlFormatStyle::Minimal,
+        "beautify" => SqlFormatStyle::Beautify,
+        _ => SqlFormatStyle::Beautify, // Default fallback
+    };
+
+    // Format the SQL
+    let formatted = sql_format(&sql_input, format_style)?;
+
+    // Print the formatted SQL
+    println!("{}", formatted);
 
     Ok(())
 }
